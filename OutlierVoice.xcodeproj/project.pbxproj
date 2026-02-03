@@ -106,6 +106,7 @@
 		EEB3B85685E2C5FE82B984FD /* AlarmEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F392921A5E335F8EF26A47 /* AlarmEditView.swift */; };
 		39D757F0A5939871F019C417 /* AlarmTriggerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC69C69F85EFBF7B461EAE08 /* AlarmTriggerView.swift */; };
 		6B83F9FF48F71BB21A9C02A2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A74C79DA2352959B75F8777 /* AppDelegate.swift */; };
+		B2C3D4E5F6789012345678A1 /* VoIPPushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345678 /* VoIPPushManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -222,6 +223,7 @@
 		B2F392921A5E335F8EF26A47 /* AlarmEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmEditView.swift; sourceTree = "<group>"; };
 		BC69C69F85EFBF7B461EAE08 /* AlarmTriggerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTriggerView.swift; sourceTree = "<group>"; };
 		7A74C79DA2352959B75F8777 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012345678 /* VoIPPushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPPushManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -479,6 +481,7 @@
 				1A67D028D63E54C787D2812E /* AlarmListView.swift */,
 				B2F392921A5E335F8EF26A47 /* AlarmEditView.swift */,
 				BC69C69F85EFBF7B461EAE08 /* AlarmTriggerView.swift */,
+				A1B2C3D4E5F6789012345678 /* VoIPPushManager.swift */,
 			);
 			path = Alarm;
 			sourceTree = "<group>";
@@ -614,6 +617,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				22EAD1E9BD4AEC4335AFB047 /* AlarmModel.swift in Sources */,
+				B2C3D4E5F6789012345678A1 /* VoIPPushManager.swift in Sources */,
 				CCFBC67F00703E73044A3247 /* AlarmManager.swift in Sources */,
 				B8E62CDDB8723938C4959A99 /* AlarmListView.swift in Sources */,
 				EEB3B85685E2C5FE82B984FD /* AlarmEditView.swift in Sources */,

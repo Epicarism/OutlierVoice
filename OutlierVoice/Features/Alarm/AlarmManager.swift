@@ -42,6 +42,9 @@ final class AlarmManager {
             scheduleNotification(for: alarm)
         }
         print("[Alarm] ➕ Added alarm: \(alarm.title) at \(alarm.timeString)")
+        
+        // Sync to server for VoIP push
+        VoIPPushManager.shared.syncAlarm(alarm)
     }
     
     func updateAlarm(_ alarm: ClaudeAlarm) {
@@ -56,6 +59,9 @@ final class AlarmManager {
                 scheduleNotification(for: alarm)
             }
             print("[Alarm] ✏️ Updated alarm: \(alarm.title)")
+            
+            // Sync to server for VoIP push
+            VoIPPushManager.shared.syncAlarm(alarm)
         }
     }
     
@@ -64,6 +70,9 @@ final class AlarmManager {
         alarms.removeAll { $0.id == alarm.id }
         saveAlarms()
         print("[Alarm] 🗑️ Deleted alarm: \(alarm.title)")
+        
+        // Delete from server
+        VoIPPushManager.shared.deleteAlarm(alarm.id)
     }
     
     func toggleAlarm(_ alarm: ClaudeAlarm) {

@@ -10,6 +10,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Register notification categories
         registerNotificationCategories()
         
+        // Register for VoIP pushes (for background alarm calls!)
+        VoIPPushManager.shared.register()
+        
         return true
     }
     

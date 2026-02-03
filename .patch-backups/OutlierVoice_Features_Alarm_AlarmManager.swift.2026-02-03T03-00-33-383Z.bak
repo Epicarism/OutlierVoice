@@ -1,0 +1,279 @@
+import Foundation
+import UserNotifications
+import AVFoundation
+import UIKit
+
+/// Manages Claude alarm scheduling, persistence, and triggering
+@Observable
+@MainActor
+final class AlarmManager {
+    static let shared = AlarmManager()
+    
+    private(set) var alarms: [ClaudeAlarm] = []
+    private(set) var activeAlarm: ClaudeAlarm?
+    private(set) var mathProblem: (question: String, answer: Int)?
+    
+    private let storageKey = "claude_alarms"
+    private var audioPlayer: AVAudioPlayer?
+    
+    private init() {
+        loadAlarms()
+        requestNotificationPermission()
+    }
+    
+    // MARK: - Permissions
+    
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { granted, error in
+            if granted {
+                print("[Alarm] ✅ Notification permission granted")
+            } else {
+                print("[Alarm] ❌ Notification permission denied: \(error?.localizedDescription ?? "unknown")")
+            }
+        }
+    }
+    
+    // MARK: - CRUD Operations
+    
+    func addAlarm(_ alarm: ClaudeAlarm) {
+        alarms.append(alarm)
+        saveAlarms()
+        if alarm.isEnabled {
+            scheduleNotification(for: alarm)
+        }
+        print("[Alarm] ➕ Added alarm: \(alarm.title) at \(alarm.timeString)")
+    }
+    
+    func updateAlarm(_ alarm: ClaudeAlarm) {
+        if let index = alarms.firstIndex(where: { $0.id == alarm.id }) {
+            // Cancel old notification
+            cancelNotification(for: alarms[index])
+            
+            alarms[index] = alarm
+            saveAlarms()
+            
+            if alarm.isEnabled {
+                scheduleNotification(for: alarm)
+            }
+            print("[Alarm] ✏️ Updated alarm: \(alarm.title)")
+        }
+    }
+    
+    func deleteAlarm(_ alarm: ClaudeAlarm) {
+        cancelNotification(for: alarm)
+        alarms.removeAll { $0.id == alarm.id }
+        saveAlarms()
+        print("[Alarm] 🗑️ Deleted alarm: \(alarm.title)")
+    }
+    
+    func toggleAlarm(_ alarm: ClaudeAlarm) {
+        var updated = alarm
+        updated.isEnabled.toggle()
+        updateAlarm(updated)
+    }
+    
+    // MARK: - Scheduling
+    
+    private func scheduleNotification(for alarm: ClaudeAlarm) {
+        let content = UNMutableNotificationContent()
+        content.title = "📞 Claude is calling!"
+        content.subtitle = alarm.title
+        content.body = alarm.message
+        content.sound = .defaultCritical
+        content.interruptionLevel = .critical
+        content.categoryIdentifier = "CLAUDE_ALARM"
+        content.userInfo = ["alarmId": alarm.id.uuidString]
+        
+        // Create trigger based on time
+        let calendar = Calendar.current
+        var dateComponents = calendar.dateComponents([.hour, .minute], from: alarm.time)
+        
+        if alarm.repeatDays.isEmpty {
+            // One-time alarm - use full date
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: alarm.time)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let request = UNNotificationRequest(identifier: alarm.id.uuidString, content: content, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("[Alarm] ❌ Failed to schedule: \(error)")
+                } else {
+                    print("[Alarm] ⏰ Scheduled one-time alarm for \(alarm.timeString)")
+                }
+            }
+        } else {
+            // Repeating alarm - schedule for each day
+            for day in alarm.repeatDays {
+                dateComponents.weekday = day
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                let requestId = "\(alarm.id.uuidString)-\(day)"
+                let request = UNNotificationRequest(identifier: requestId, content: content, trigger: trigger)
+                
+                UNUserNotificationCenter.current().add(request) { error in
+                    if let error = error {
+                        print("[Alarm] ❌ Failed to schedule day \(day): \(error)")
+                    }
+                }
+            }
+            print("[Alarm] ⏰ Scheduled repeating alarm for \(alarm.repeatDescription)")
+        }
+    }
+    
+    private func cancelNotification(for alarm: ClaudeAlarm) {
+        var identifiers = [alarm.id.uuidString]
+        // Also cancel day-specific notifications
+        for day in 1...7 {
+            identifiers.append("\(alarm.id.uuidString)-\(day)")
+        }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        print("[Alarm] 🚫 Cancelled notifications for: \(alarm.title)")
+    }
+    
+    // MARK: - Alarm Triggering
+    
+    func triggerAlarm(_ alarm: ClaudeAlarm) {
+        print("[Alarm] 🔔 TRIGGERING: \(alarm.title)")
+        activeAlarm = alarm
+        
+        if alarm.requiresMathToSnooze {
+            mathProblem = alarm.mathDifficulty.generateProblem()
+        }
+        
+        // 🔥 USE CALLKIT - Makes it ring like a real phone call!
+        triggerAsPhoneCall(alarm)
+    }
+    
+    /// Trigger alarm as an incoming phone call using CallKit
+    private func triggerAsPhoneCall(_ alarm: ClaudeAlarm) {
+        let callKit = CallKitManager.shared
+        
+        // Set up callback for when user answers
+        callKit.onCallAnswered = { [weak self] in
+            Task { @MainActor in
+                print("[Alarm] 📞 User answered the call!")
+                self?.startAlarmLoop()
+                // The AlarmTriggerView will show and TTS will play
+            }
+        }
+        
+        // Set up callback for when user declines/ends
+        callKit.onCallEnded = { [weak self] in
+            Task { @MainActor in
+                print("[Alarm] 📴 User declined/ended the call")
+                self?.dismissAlarm()
+            }
+        }
+        
+        // Report incoming call - this shows the native iOS call UI!
+        callKit.reportIncomingAlarmCall(title: alarm.title, message: alarm.message)
+    }
+    
+    /// Legacy trigger without CallKit (fallback)
+    private func triggerWithVibration(_ alarm: ClaudeAlarm) {
+        // Vibrate
+        AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
+        
+        // Start repeating vibration
+        startAlarmLoop()
+    }
+    
+    private var alarmLoopTimer: Timer?
+    
+    private func startAlarmLoop() {
+        alarmLoopTimer?.invalidate()
+        alarmLoopTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
+        }
+    }
+    
+    func dismissAlarm() {
+        print("[Alarm] ✅ Dismissed alarm")
+        alarmLoopTimer?.invalidate()
+        alarmLoopTimer = nil
+        activeAlarm = nil
+        mathProblem = nil
+        
+        // End the CallKit call
+        CallKitManager.shared.endCall()
+    }
+    
+    func snoozeAlarm(minutes: Int = 5) {
+        guard let alarm = activeAlarm else { return }
+        
+        print("[Alarm] 😴 Snoozed for \(minutes) minutes")
+        alarmLoopTimer?.invalidate()
+        alarmLoopTimer = nil
+        
+        // End the CallKit call
+        CallKitManager.shared.endCall()
+        
+        // Schedule snooze notification
+        let content = UNMutableNotificationContent()
+        content.title = "📞 Claude is calling again!"
+        content.subtitle = "\(alarm.title) (Snoozed)"
+        content.body = alarm.message
+        content.sound = .defaultCritical
+        content.interruptionLevel = .critical
+        content.userInfo = ["alarmId": alarm.id.uuidString]
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(minutes * 60), repeats: false)
+        let request = UNNotificationRequest(identifier: "\(alarm.id.uuidString)-snooze", content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request)
+        
+        activeAlarm = nil
+        mathProblem = nil
+    }
+    
+    func checkMathAnswer(_ answer: String) -> Bool {
+        guard let problem = mathProblem,
+              let userAnswer = Int(answer.trimmingCharacters(in: .whitespaces)) else {
+            return false
+        }
+        return userAnswer == problem.answer
+    }
+    
+    // MARK: - Persistence
+    
+    private func saveAlarms() {
+        if let data = try? JSONEncoder().encode(alarms) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+    
+    private func loadAlarms() {
+        if let data = UserDefaults.standard.data(forKey: storageKey),
+           let decoded = try? JSONDecoder().decode([ClaudeAlarm].self, from: data) {
+            alarms = decoded
+            print("[Alarm] 📂 Loaded \(alarms.count) alarms")
+            
+            // Re-schedule enabled alarms
+            for alarm in alarms where alarm.isEnabled {
+                scheduleNotification(for: alarm)
+            }
+        }
+    }
+    
+    // MARK: - Handle Notification
+    
+    func handleNotification(alarmId: String) {
+        if let alarm = alarms.first(where: { $0.id.uuidString == alarmId }) {
+            triggerAlarm(alarm)
+        }
+    }
+}
+
+// MARK: - Preset Messages
+
+extension ClaudeAlarm {
+    static let presetMessages: [(title: String, message: String)] = [
+        ("Morning Motivation", "Good morning, champion! Today is full of possibilities. What will you create today?"),
+        ("Exam Day", "Today's your exam day! You've prepared for this. Trust your knowledge and stay calm. You've got this!"),
+        ("Bible Verse", "Good morning! Remember Philippians 4:13 - I can do all things through Christ who strengthens me. Have a blessed day!"),
+        ("Workout Time", "Time to get moving! Your body will thank you. Just 30 minutes of exercise can change your whole day!"),
+        ("Study Reminder", "Time to study! Remember: small consistent efforts lead to big results. Let's focus for the next hour."),
+        ("Gratitude", "Good morning! Before you start your day, think of three things you're grateful for. Gratitude transforms everything."),
+        ("Hydration", "Hey! Have you had water today? Your brain needs it! Drink a full glass right now."),
+        ("Custom", "")
+    ]
+}
