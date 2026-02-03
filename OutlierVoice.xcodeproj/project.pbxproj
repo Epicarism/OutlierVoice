@@ -100,6 +100,12 @@
 		DED10EDA76435ECEF81A5AC8 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074B82C9648D4AD54488BB3A /* ChatView.swift */; };
 		E19D89383ADEEE52B2E11D57 /* ModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED161E96678AA965144CC3B /* ModelPicker.swift */; };
 		FC9A9825584514522594879D /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9A11B5B9949E95B2C62285 /* CallManager.swift */; };
+		22EAD1E9BD4AEC4335AFB047 /* AlarmModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138C62B91542E87CC430398 /* AlarmModel.swift */; };
+		CCFBC67F00703E73044A3247 /* AlarmManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 752982F153E46651D07037FF /* AlarmManager.swift */; };
+		B8E62CDDB8723938C4959A99 /* AlarmListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A67D028D63E54C787D2812E /* AlarmListView.swift */; };
+		EEB3B85685E2C5FE82B984FD /* AlarmEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F392921A5E335F8EF26A47 /* AlarmEditView.swift */; };
+		39D757F0A5939871F019C417 /* AlarmTriggerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC69C69F85EFBF7B461EAE08 /* AlarmTriggerView.swift */; };
+		6B83F9FF48F71BB21A9C02A2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A74C79DA2352959B75F8777 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -210,6 +216,12 @@
 		DB386F2B8B2B2502407A3664 /* TTSEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSEngine.swift; sourceTree = "<group>"; };
 		E215B02529B09AFC24669038 /* FaceTimeCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceTimeCallView.swift; sourceTree = "<group>"; };
 		E88B174A4593111DE41B306D /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		1138C62B91542E87CC430398 /* AlarmModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmModel.swift; sourceTree = "<group>"; };
+		752982F153E46651D07037FF /* AlarmManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmManager.swift; sourceTree = "<group>"; };
+		1A67D028D63E54C787D2812E /* AlarmListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmListView.swift; sourceTree = "<group>"; };
+		B2F392921A5E335F8EF26A47 /* AlarmEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmEditView.swift; sourceTree = "<group>"; };
+		BC69C69F85EFBF7B461EAE08 /* AlarmTriggerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTriggerView.swift; sourceTree = "<group>"; };
+		7A74C79DA2352959B75F8777 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -282,6 +294,7 @@
 		6FD89C33E6BB2FDA04D9106C /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				FF3E35B7611F119CDDE08EBF /* Alarm */,
 				8829378E6E932A3FBB534029 /* Audio */,
 				8403159220F606B7E2FE8045 /* Call */,
 				74F62EF575D86174A8B34754 /* Camera */,
@@ -410,6 +423,7 @@
 		C003607E8A3C2731D19998FB /* App */ = {
 			isa = PBXGroup;
 			children = (
+				7A74C79DA2352959B75F8777 /* AppDelegate.swift */,
 				CF6BDFE1515242914785AB34 /* ContentView.swift */,
 				CA170C4516F7D723FF276E2F /* OutlierVoiceApp.swift */,
 			);
@@ -455,6 +469,18 @@
 				4705A6CC44670699175B5477 /* UI */,
 			);
 			path = OutlierVoice;
+			sourceTree = "<group>";
+		};
+		FF3E35B7611F119CDDE08EBF /* Alarm */ = {
+			isa = PBXGroup;
+			children = (
+				1138C62B91542E87CC430398 /* AlarmModel.swift */,
+				752982F153E46651D07037FF /* AlarmManager.swift */,
+				1A67D028D63E54C787D2812E /* AlarmListView.swift */,
+				B2F392921A5E335F8EF26A47 /* AlarmEditView.swift */,
+				BC69C69F85EFBF7B461EAE08 /* AlarmTriggerView.swift */,
+			);
+			path = Alarm;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -587,6 +613,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				22EAD1E9BD4AEC4335AFB047 /* AlarmModel.swift in Sources */,
+				CCFBC67F00703E73044A3247 /* AlarmManager.swift in Sources */,
+				B8E62CDDB8723938C4959A99 /* AlarmListView.swift in Sources */,
+				EEB3B85685E2C5FE82B984FD /* AlarmEditView.swift in Sources */,
+				39D757F0A5939871F019C417 /* AlarmTriggerView.swift in Sources */,
+				6B83F9FF48F71BB21A9C02A2 /* AppDelegate.swift in Sources */,
+
 				A89611C4828A59208C667FB4 /* AudioSessionManager.swift in Sources */,
 				FC9A9825584514522594879D /* CallManager.swift in Sources */,
 				84FBFE4D9CE834CAB6F6ACC4 /* CameraManager.swift in Sources */,
