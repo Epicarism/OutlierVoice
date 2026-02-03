@@ -6,6 +6,8 @@ struct ContentView: View {
     @Bindable var viewModel: ChatViewModel
     @State private var showSettings = false
     @State private var showHistory = false
+    @State private var showAlarms = false
+    @State private var alarmManager = AlarmManager.shared
     
     var body: some View {
         NavigationStack {
@@ -26,6 +28,14 @@ struct ContentView: View {
                             Image(systemName: "clock.arrow.circlepath")
                         }
                     }
+                    
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showAlarms = true
+                        } label: {
+                            Image(systemName: "alarm")
+                        }
+                    }
                 }
         }
         .sheet(isPresented: $showSettings) {
@@ -39,6 +49,9 @@ struct ContentView: View {
                         }
                     }
             }
+        }
+        .sheet(isPresented: $showAlarms) {
+            AlarmListView()
         }
         .sheet(isPresented: $showHistory) {
             NavigationStack {
@@ -67,6 +80,14 @@ struct ContentView: View {
             }
         }
         // Models now load lazily on first use
+        .fullScreenCover(item: Binding(
+            get: { alarmManager.activeAlarm },
+            set: { _ in }
+        )) { alarm in
+            AlarmTriggerView(alarm: alarm) {
+                // Dismiss handled by AlarmManager
+            }
+        }
     }
 }
 

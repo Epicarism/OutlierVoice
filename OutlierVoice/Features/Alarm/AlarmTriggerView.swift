@@ -1,0 +1,214 @@
+import SwiftUI
+
+struct AlarmTriggerView: View {
+    @State private var alarmManager = AlarmManager.shared
+    @State private var ttsEngine = TTSEngine()
+    @State private var mathAnswer: String = ""
+    @State private var showWrongAnswer = false
+    @State private var pulseAnimation = false
+    
+    let alarm: ClaudeAlarm
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.9)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 32) {
+                Spacer()
+                
+                // Claude Avatar
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.2))
+                        .frame(width: 160, height: 160)
+                        .scaleEffect(pulseAnimation ? 1.2 : 1.0)
+                        .opacity(pulseAnimation ? 0.5 : 1.0)
+                    
+                    Circle()
+                        .fill(.white.opacity(0.3))
+                        .frame(width: 140, height: 140)
+                    
+                    Text("🤖")
+                        .font(.system(size: 80))
+                }
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                        pulseAnimation = true
+                    }
+                }
+                
+                // Title
+                Text("📞 Claude is calling!")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                
+                Text(alarm.title)
+                    .font(.title2)
+                    .foregroundStyle(.white.opacity(0.9))
+                
+                // Message
+                Text(alarm.message)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(.horizontal, 32)
+                
+                Spacer()
+                
+                // Math Problem (if required)
+                if alarm.requiresMathToSnooze, let problem = alarmManager.mathProblem {
+                    VStack(spacing: 16) {
+                        Text("Solve to snooze:")
+                            .font(.headline)
+                            .foregroundStyle(.white.opacity(0.8))
+                        
+                        Text(problem.question)
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                        
+                        HStack {
+                            TextField("Answer", text: $mathAnswer)
+                                .keyboardType(.numberPad)
+                                .font(.title)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                                .background(.white.opacity(0.2))
+                                .cornerRadius(12)
+                                .foregroundStyle(.white)
+                                .frame(width: 150)
+                            
+                            Button {
+                                checkAnswer()
+                            } label: {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                        
+                        if showWrongAnswer {
+                            Text("Wrong! Try again.")
+                                .foregroundStyle(.red)
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial.opacity(0.3))
+                    .cornerRadius(20)
+                    .padding(.horizontal)
+                }
+                
+                Spacer()
+                
+                // Action Buttons
+                HStack(spacing: 40) {
+                    // Snooze
+                    if !alarm.requiresMathToSnooze {
+                        Button {
+                            snooze()
+                        } label: {
+                            VStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(.white.opacity(0.2))
+                                        .frame(width: 70, height: 70)
+                                    
+                                    Image(systemName: "moon.zzz.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white)
+                                }
+                                Text("Snooze")
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                    }
+                    
+                    // Dismiss
+                    Button {
+                        dismiss()
+                    } label: {
+                        VStack {
+                            ZStack {
+                                Circle()
+                                    .fill(.green)
+                                    .frame(width: 80, height: 80)
+                                
+                                Image(systemName: "phone.down.fill")
+                                    .font(.system(size: 35))
+                                    .foregroundStyle(.white)
+                            }
+                            Text("Dismiss")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
+                .padding(.bottom, 60)
+            }
+        }
+        .onAppear {
+            speakMessage()
+        }
+    }
+    
+    private func speakMessage() {
+        Task {
+            do {
+                try await ttsEngine.loadModel()
+                try await ttsEngine.speakAndPlay(text: alarm.message)
+            } catch {
+                print("[Alarm] TTS error: \(error)")
+            }
+        }
+    }
+    
+    private func checkAnswer() {
+        if alarmManager.checkMathAnswer(mathAnswer) {
+            snooze()
+        } else {
+            showWrongAnswer = true
+            mathAnswer = ""
+            
+            // Vibrate on wrong answer
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.error)
+            
+            // Hide error after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showWrongAnswer = false
+            }
+        }
+    }
+    
+    private func snooze() {
+        ttsEngine.stopPlayback()
+        alarmManager.snoozeAlarm(minutes: 5)
+        onDismiss()
+    }
+    
+    private func dismiss() {
+        ttsEngine.stopPlayback()
+        alarmManager.dismissAlarm()
+        onDismiss()
+    }
+}
+
+#Preview {
+    AlarmTriggerView(
+        alarm: ClaudeAlarm(
+            title: "Morning Motivation",
+            message: "Good morning champion! Today is full of possibilities!",
+            requiresMathToSnooze: true
+        ),
+        onDismiss: {}
+    )
+}
