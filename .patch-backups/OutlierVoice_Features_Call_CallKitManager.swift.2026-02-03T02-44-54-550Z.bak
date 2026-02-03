@@ -79,44 +79,6 @@ final class CallKitManager: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Incoming Alarm Call
-    
-    /// Report an incoming call from Claude (for alarms!)
-    func reportIncomingAlarmCall(title: String, message: String) {
-        let uuid = UUID()
-        currentCallUUID = uuid
-        pendingAlarmTitle = title
-        pendingAlarmMessage = message
-        
-        let update = CXCallUpdate()
-        update.remoteHandle = CXHandle(type: .generic, value: "Claude Alarm")
-        update.localizedCallerName = "☀️ \(title)"
-        update.hasVideo = false
-        update.supportsHolding = false
-        update.supportsGrouping = false
-        update.supportsUngrouping = false
-        update.supportsDTMF = false
-        
-        print("[CallKit] 📞 Reporting incoming alarm call: \(title)")
-        
-        provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
-            if let error = error {
-                print("[CallKit] ❌ Failed to report incoming call: \(error.localizedDescription)")
-                // Fallback to regular notification trigger
-                Task { @MainActor in
-                    self?.pendingAlarmMessage = nil
-                    self?.pendingAlarmTitle = nil
-                }
-                return
-            }
-            
-            print("[CallKit] ✅ Incoming call reported - native UI should appear!")
-            Task { @MainActor in
-                self?.isCallActive = true
-            }
-        }
-    }
-    
     // MARK: - End Call
     
     /// End the current call
@@ -271,14 +233,8 @@ extension CallKitManager: CXProviderDelegate {
     }
     
     nonisolated func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-        print("[CallKit] 📲 Answer call action - User answered the alarm call!")
-        
-        Task { @MainActor in
-            configureAudioSession()
-            isCallActive = true
-            onCallAnswered?()
-        }
-        
+        // For future incoming calls
+        print("[CallKit] 📲 Answer call action")
         action.fulfill()
     }
 }

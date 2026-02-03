@@ -53,21 +53,6 @@ struct AlarmTriggerView: View {
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                 
-                // Speaking indicator
-                if isSpeaking {
-                    HStack(spacing: 8) {
-                        Image(systemName: "waveform")
-                            .symbolEffect(.variableColor.iterative)
-                        Text("Speaking...")
-                        if repeatCount > 1 {
-                            Text("(×\(repeatCount))")
-                                .opacity(0.7)
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
-                }
-                
                 Text(alarm.title)
                     .font(.title2)
                     .foregroundStyle(.white.opacity(0.9))
@@ -179,36 +164,14 @@ struct AlarmTriggerView: View {
     }
     
     private func speakMessage() {
-        ttsTask = Task {
+        Task {
             do {
                 try await ttsEngine.loadModel()
-                
-                // 🔄 AUTO-REPEAT: Keep speaking until dismissed!
-                while !Task.isCancelled {
-                    repeatCount += 1
-                    isSpeaking = true
-                    print("[Alarm] 🔊 Speaking message (repeat #\(repeatCount))")
-                    
-                    try await ttsEngine.speakAndPlay(text: alarm.message)
-                    
-                    isSpeaking = false
-                    
-                    // Wait 3 seconds between repeats
-                    try await Task.sleep(nanoseconds: 3_000_000_000)
-                }
+                try await ttsEngine.speakAndPlay(text: alarm.message)
             } catch {
-                if !Task.isCancelled {
-                    print("[Alarm] TTS error: \(error)")
-                }
+                print("[Alarm] TTS error: \(error)")
             }
         }
-    }
-    
-    private func stopSpeaking() {
-        ttsTask?.cancel()
-        ttsTask = nil
-        ttsEngine.stopPlayback()
-        isSpeaking = false
     }
     
     private func checkAnswer() {
@@ -230,13 +193,13 @@ struct AlarmTriggerView: View {
     }
     
     private func snooze() {
-        stopSpeaking()
+        ttsEngine.stopPlayback()
         alarmManager.snoozeAlarm(minutes: 5)
         onDismiss()
     }
     
     private func dismiss() {
-        stopSpeaking()
+        ttsEngine.stopPlayback()
         alarmManager.dismissAlarm()
         onDismiss()
     }

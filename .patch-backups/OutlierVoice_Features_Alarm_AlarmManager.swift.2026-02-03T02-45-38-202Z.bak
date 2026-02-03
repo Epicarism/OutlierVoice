@@ -204,9 +204,6 @@ final class AlarmManager {
         alarmLoopTimer?.invalidate()
         alarmLoopTimer = nil
         
-        // End the CallKit call
-        CallKitManager.shared.endCall()
-        
         // Schedule snooze notification
         let content = UNMutableNotificationContent()
         content.title = "📞 Claude is calling again!"

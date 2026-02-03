@@ -271,14 +271,8 @@ extension CallKitManager: CXProviderDelegate {
     }
     
     nonisolated func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-        print("[CallKit] 📲 Answer call action - User answered the alarm call!")
-        
-        Task { @MainActor in
-            configureAudioSession()
-            isCallActive = true
-            onCallAnswered?()
-        }
-        
+        // For future incoming calls
+        print("[CallKit] 📲 Answer call action")
         action.fulfill()
     }
 }

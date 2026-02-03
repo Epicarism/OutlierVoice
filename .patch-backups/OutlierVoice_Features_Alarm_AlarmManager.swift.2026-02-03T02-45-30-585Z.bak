@@ -192,9 +192,6 @@ final class AlarmManager {
         alarmLoopTimer = nil
         activeAlarm = nil
         mathProblem = nil
-        
-        // End the CallKit call
-        CallKitManager.shared.endCall()
     }
     
     func snoozeAlarm(minutes: Int = 5) {
@@ -203,9 +200,6 @@ final class AlarmManager {
         print("[Alarm] 😴 Snoozed for \(minutes) minutes")
         alarmLoopTimer?.invalidate()
         alarmLoopTimer = nil
-        
-        // End the CallKit call
-        CallKitManager.shared.endCall()
         
         // Schedule snooze notification
         let content = UNMutableNotificationContent()

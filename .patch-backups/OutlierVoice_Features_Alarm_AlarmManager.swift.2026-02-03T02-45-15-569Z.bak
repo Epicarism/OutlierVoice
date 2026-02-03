@@ -139,37 +139,6 @@ final class AlarmManager {
             mathProblem = alarm.mathDifficulty.generateProblem()
         }
         
-        // 🔥 USE CALLKIT - Makes it ring like a real phone call!
-        triggerAsPhoneCall(alarm)
-    }
-    
-    /// Trigger alarm as an incoming phone call using CallKit
-    private func triggerAsPhoneCall(_ alarm: ClaudeAlarm) {
-        let callKit = CallKitManager.shared
-        
-        // Set up callback for when user answers
-        callKit.onCallAnswered = { [weak self] in
-            Task { @MainActor in
-                print("[Alarm] 📞 User answered the call!")
-                self?.startAlarmLoop()
-                // The AlarmTriggerView will show and TTS will play
-            }
-        }
-        
-        // Set up callback for when user declines/ends
-        callKit.onCallEnded = { [weak self] in
-            Task { @MainActor in
-                print("[Alarm] 📴 User declined/ended the call")
-                self?.dismissAlarm()
-            }
-        }
-        
-        // Report incoming call - this shows the native iOS call UI!
-        callKit.reportIncomingAlarmCall(title: alarm.title, message: alarm.message)
-    }
-    
-    /// Legacy trigger without CallKit (fallback)
-    private func triggerWithVibration(_ alarm: ClaudeAlarm) {
         // Vibrate
         AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
         
@@ -192,9 +161,6 @@ final class AlarmManager {
         alarmLoopTimer = nil
         activeAlarm = nil
         mathProblem = nil
-        
-        // End the CallKit call
-        CallKitManager.shared.endCall()
     }
     
     func snoozeAlarm(minutes: Int = 5) {
@@ -203,9 +169,6 @@ final class AlarmManager {
         print("[Alarm] 😴 Snoozed for \(minutes) minutes")
         alarmLoopTimer?.invalidate()
         alarmLoopTimer = nil
-        
-        // End the CallKit call
-        CallKitManager.shared.endCall()
         
         // Schedule snooze notification
         let content = UNMutableNotificationContent()
