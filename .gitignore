@@ -18,6 +18,7 @@ voices/
 Packages/
 checkouts/
 repositories/
+node_modules/
 
 # macOS
 .DS_Store

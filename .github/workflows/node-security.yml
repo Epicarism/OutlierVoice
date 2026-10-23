@@ -1,0 +1,40 @@
+name: Node security baseline
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: AlarmServer/.node-version
+      - name: Check supported runtime, deployment selectors, and Brotli
+        run: node .github/scripts/node-security.cjs --self-test
+      - name: Fail closed on high or critical dependency advisories
+        shell: bash
+        run: |
+          result=0
+          for directory in AlarmServer; do
+            npm --prefix "$directory" audit --package-lock-only --audit-level=high || result=1
+          done
+          exit "$result"
+  consumer-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: AlarmServer/.node-version
+      - name: Install locked server dependencies without lifecycle scripts
+        run: npm --prefix AlarmServer ci --ignore-scripts --no-audit --no-fund
+      - name: Exercise serialization without connecting or sending
+        run: node .github/scripts/dependency-smoke.cjs
+      - name: Audit the actual installed tree as well as the lockfile
+        run: npm --prefix AlarmServer audit --audit-level=high
