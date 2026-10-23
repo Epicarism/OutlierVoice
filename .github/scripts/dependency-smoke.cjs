@@ -1,0 +1,18 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { createRequire } = require('node:module');
+const path = require('node:path');
+const requireServer = createRequire(path.resolve(__dirname, '../../AlarmServer/package.json'));
+const apn = requireServer('@parse/node-apn');
+const notification = new apn.Notification();
+notification.alert = 'Synthetic security smoke';
+notification.payload = { synthetic: true };
+const payload = JSON.parse(notification.compile());
+assert.equal(payload.aps.alert, 'Synthetic security smoke');
+assert.equal(payload.synthetic, true);
+const trusted = requireServer('proxy-addr').compile('loopback');
+assert.equal(trusted('127.0.0.1', 0), true);
+assert.equal(trusted('::1', 0), true);
+assert.equal(trusted('192.0.2.1', 0), false);
+assert.match(requireServer('uuid').v4(), /^[0-9a-f-]{36}$/);
+console.log('PASS APNs payload serialization, normal proxy trust checks and UUID generation; no provider, push, alarm, listener or call created');
