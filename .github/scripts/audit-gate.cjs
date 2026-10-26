@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-// Audit gate: fails on any HIGH/CRITICAL lockfile advisory except a documented,
-// explicitly allowlisted set of no-fix-available advisories.
-// AUDIT_GATE_STRICT=1 disables the allowlist (re-audit accepted risk at any time).
+// Audit gate: fails on any HIGH/CRITICAL advisory except a documented,
+// explicitly allowlisted set of no-fix-available advisories, each scoped to
+// one audited directory and one package name.
+// Fails CLOSED: if npm audit itself errors (bad JSON, {"error":...}, missing
+// metadata), the gate exits 1.
+// AUDIT_GATE_STRICT=1 disables the allowlist (re-audit accepted risk).
 const { spawnSync } = require("child_process");
 const ALLOWLIST = {
   "GHSA-86w9-cpqp-85rv": {
+    dirs: ["AlarmServer"],
     package: "node-forge",
     reason:
-      "No fixed release exists (advisory covers every version). Carried by @parse/node-apn; " +
-      "AlarmServer uses forge only to parse its own APNs credentials, never to verify " +
-      "attacker-controlled signatures.",
+      "No fixed release exists (advisory covers every version). Carried by @parse/node-apn; AlarmServer uses forge only to parse its own APNs credentials, never to verify attacker-controlled signatures.",
   },
 };
 const argv = process.argv.slice(2);
@@ -27,14 +29,22 @@ for (const dir of dirs) {
     console.error("[audit-gate] " + dir + ": could not parse npm audit output");
     failed = 1; continue;
   }
+  if (report.error || !report.metadata || !report.metadata.vulnerabilities) {
+    console.error("[audit-gate] " + dir + ": npm audit did not produce a report: " +
+      JSON.stringify(report.error || "missing metadata.vulnerabilities"));
+    failed = 1; continue;
+  }
   const vulns = report.vulnerabilities || {};
   const acceptedPkgs = new Set();
   for (const [name, v] of Object.entries(vulns)) {
     if (!["high", "critical"].includes(v.severity)) continue;
     const advisories = (v.via || []).filter((x) => typeof x === "object" && x.url);
     const ok = !strict && advisories.length > 0 &&
-      advisories.every((a) => ALLOWLIST[a.url.split("/").pop()]);
-    if (ok) { acceptedPkgs.add(name); }
+      advisories.every((a) => {
+        const e = ALLOWLIST[a.url.split("/").pop()];
+        return e && e.dirs.includes(dir) && e.package === name;
+      });
+    if (ok) acceptedPkgs.add(name);
   }
   // Propagate acceptance up dependency chains to a fixpoint.
   for (let changed = true; changed; ) {
@@ -55,13 +65,13 @@ for (const dir of dirs) {
       const ok = acceptedPkgs.has(name);
       for (const a of advisories) {
         const id = a.url.split("/").pop();
-        if (ok) console.log("[audit-gate] ACCEPTED " + name + " " + id + ": " + ALLOWLIST[id].reason);
-        else { console.error("[audit-gate] FAIL " + name + " " + a.url + " - " + a.title); failed = 1; }
+        if (ok) console.log("[audit-gate] ACCEPTED " + name + " (" + dir + ") " + id + ": " + ALLOWLIST[id].reason);
+        else { console.error("[audit-gate] FAIL " + name + " (" + dir + ") " + a.url + " - " + a.title); failed = 1; }
       }
     } else {
       const chainVia = (v.via || []).filter((x) => typeof x === "string");
       if (!chainVia.every((p) => acceptedPkgs.has(p))) {
-        console.error("[audit-gate] FAIL " + name + " (" + v.severity + ") via " + JSON.stringify(chainVia));
+        console.error("[audit-gate] FAIL " + name + " (" + dir + ", " + v.severity + ") via " + JSON.stringify(chainVia));
         failed = 1;
       }
     }
