@@ -36,6 +36,18 @@ for (const dir of dirs) {
       advisories.every((a) => ALLOWLIST[a.url.split("/").pop()]);
     if (ok) { acceptedPkgs.add(name); }
   }
+  // Propagate acceptance up dependency chains to a fixpoint.
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const [name, v] of Object.entries(vulns)) {
+      if (acceptedPkgs.has(name) || !["high", "critical"].includes(v.severity)) continue;
+      const via = (v.via || []);
+      const chainOnly = via.every((x) => typeof x === "string");
+      if (chainOnly && via.length && via.every((p) => acceptedPkgs.has(p))) {
+        acceptedPkgs.add(name); changed = true;
+      }
+    }
+  }
   for (const [name, v] of Object.entries(vulns)) {
     if (!["high", "critical"].includes(v.severity)) continue;
     const advisories = (v.via || []).filter((x) => typeof x === "object" && x.url);
